@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+Thumbs.db
+.venv/
+node_modules/
+*.blend
+*.blend1
+.env
+.env.*
