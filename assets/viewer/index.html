@@ -7,26 +7,42 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob:; worker-src 'self' blob:">
   <meta name="description" content="$description">
   <title>$page_title</title>
-  <link rel="stylesheet" href="./viewer.css">
-  <script defer src="./viewer.js"></script>
+  <link rel="stylesheet" href="./viewer.css?v=$revision">
+  <script type="module" src="./viewer.js?v=$revision"></script>
 </head>
-<body>
+<body data-view="model" data-revision="$revision" $fold_attr>
   <header><h1>$heading</h1></header>
-  <main aria-label="包装三维展示">
+  <main aria-label="包装展示">
     <model-viewer
-      src="./model.glb" $poster_attr
+      src="./model.glb?v=$revision" $poster_attr
       alt="$description，拖动旋转，滚轮或双指缩放，Home 返回初始角度"
       camera-controls disable-pan disable-tap touch-action="none"
       interaction-prompt="none" loading="eager" reveal="auto"
-      camera-orbit="$orbit" data-initial-orbit="$orbit"
+      camera-orbit="$orbit" data-initial-orbit="$orbit" data-mobile-orbit="$mobile_orbit"
       min-camera-orbit="auto 0.1deg 40%"
       max-camera-orbit="auto 179.9deg 300%"
       field-of-view="30deg" environment-image="neutral"
       tone-mapping="neutral" exposure="1"
-      shadow-intensity="0.8" shadow-softness="1"
+      shadow-intensity="0"
       tabindex="0">
     </model-viewer>
+    <div id="flat-view" tabindex="0" aria-label="包装平面展开图。拖动平移，滚轮以鼠标位置为中心缩放。也可双指捏合或用上下方向键缩放，Home 复位。" hidden>
+      <img $dieline_src alt="$description · 包装展开图" draggable="false">
+    </div>
+    <div id="fold-stage" aria-hidden="true" hidden></div>
   </main>
+  <div class="mode-switch" role="group" aria-label="展示模式" $mode_attr>
+    <button type="button" id="show-flat" aria-pressed="false" disabled>
+      <span><img src="./vendor/square.svg" alt="">平面展示</span>
+    </button>
+    <button type="button" id="show-model" aria-pressed="true" disabled>
+      <span><img src="./vendor/box.svg" alt="">3D展示</span>
+    </button>
+  </div>
+  <button class="fullscreen" type="button" aria-label="全屏展示" aria-pressed="false" title="全屏展示">
+    <img class="expand-icon" src="./vendor/expand.svg" alt="">
+    <img class="shrink-icon" src="./vendor/shrink.svg" alt="">
+  </button>
   <p id="load-status" role="status" aria-live="polite">正在加载包装模型…</p>
   <noscript><p class="no-script">请启用 JavaScript 查看可旋转的包装模型。</p></noscript>
 </body>

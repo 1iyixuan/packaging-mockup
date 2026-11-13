@@ -1,4 +1,4 @@
 interface:
   display_name: "包装效果图"
-  short_description: "先检查 Blender 连接，再制作包装白模、贴图模型、透明底效果图与互动网页"
-  default_prompt: "请使用 $packaging-mockup（包装效果图），根据我提供的包装效果图、刀版或尺寸及标题，先检查 Blender 连接，再依次生成白模参考、建模贴图、透明底正面图和可旋转缩放的手机适配网页源码，先交付原文件，按本次要求决定是否通过 Netlify Drop 部署。"
+  short_description: "制作包装白模、贴图模型、透明底效果图和可切换平面与 3D 的互动网页"
+  default_prompt: "请使用 $packaging-mockup（包装效果图），根据我提供的包装资料先检查 Blender 连接，再制作白模参考、贴图模型、透明底正面图和手机适配网页。网页默认无投影，支持平面与 3D 展示、按实际折线双向切换、平面定位缩放和拖动及全屏。先交付原文件，按本次要求决定是否通过 Netlify Drop 部署。"
