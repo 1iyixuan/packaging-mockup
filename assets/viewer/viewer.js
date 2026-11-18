@@ -7,10 +7,11 @@ const modelButton = document.querySelector('#show-model');
 const fullscreen = document.querySelector('.fullscreen');
 const status = document.querySelector('#load-status');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const desktopPointer = matchMedia('(hover: hover) and (pointer: fine)');
 const narrow = matchMedia('(max-aspect-ratio: 4/5)');
 const revision = document.body.dataset.revision;
 const foldConfig = document.body.dataset.foldConfig;
-const fold = foldConfig ? loadFold() : Promise.resolve(null);
+let foldAssets;
 const pointers = new Map();
 let activePointerType;
 let zoom = 1;
@@ -46,26 +47,33 @@ viewer.addEventListener('load', () => {
   modelButton.disabled = false;
 });
 viewer.addEventListener('error', () => fail('模型未能加载，请刷新重试。'));
-if (artwork.hasAttribute('src')) {
-  artwork.decode().then(() => {
-    flatButton.disabled = false;
-  }).catch(() => {
-    flatButton.title = '展开图未能加载';
-  });
+flatButton.disabled = !artwork.dataset.src;
+
+async function loadArtwork() {
+  if (!artwork.dataset.src) throw new Error('没有配置展开图');
+  if (!artwork.hasAttribute('src')) artwork.src = artwork.dataset.src;
+  try {
+    await artwork.decode();
+  } catch (error) {
+    artwork.removeAttribute('src');
+    throw error;
+  }
 }
 
-async function loadFold() {
-  try {
-    const [{ createFold }, response] = await Promise.all([
-      import(`./fold.js?v=${revision}`),
-      fetch(foldConfig),
-    ]);
-    if (!response.ok) throw new Error(`折叠配置加载失败（${response.status}）`);
-    return createFold(stage, await response.json(), artwork.getAttribute('src'));
-  } catch (error) {
+function loadFoldAssets() {
+  if (!foldConfig) return Promise.resolve(null);
+  foldAssets ??= Promise.all([
+    import('./fold.js?v=' + revision),
+    fetch(foldConfig).then(response => {
+      if (!response.ok) throw new Error('折叠配置加载失败（' + response.status + '）');
+      return response.json();
+    }),
+  ]).catch(error => {
+    foldAssets = undefined;
     console.warn('折叠动画不可用，改为直接切换。', error);
     return null;
-  }
+  });
+  return foldAssets;
 }
 
 function paintFlat() {
@@ -186,45 +194,63 @@ function closedFrame() {
 async function switchView(next) {
   if (next === view || switching) return;
   switching = true;
+  const previous = view;
   const toFlat = next === 'flat';
-  const loaded = viewer.dataset.loaded === 'true';
-  if (toFlat && loaded) {
-    savedOrbit = viewer.getCameraOrbit().toString();
-    savedFieldOfView = viewer.getFieldOfView() + 'deg';
-  }
-  const renderFold = loaded && !reducedMotion.matches ? await fold : null;
-
-  if (renderFold) {
-    viewer.removeAttribute('camera-controls');
-    viewer.cameraOrbit = initialOrbit();
-    viewer.fieldOfView = '30deg';
-    if (toFlat) await animate(260, () => {});
-    viewer.jumpCameraToGoal();
-    const closed = closedFrame();
-    stage.style.perspective = closed.perspective + 'px';
-    flat.hidden = false;
-    const open = { width: artwork.offsetWidth, zoom, panX, panY };
-    flat.hidden = true;
-    renderFold(toFlat ? 0 : 1, closed, open);
-    stage.hidden = false;
-    document.body.dataset.view = 'folding';
-    await animate(1050, progress => renderFold(toFlat ? progress : 1 - progress, closed, open));
+  try {
+    if (toFlat) {
+      flatButton.setAttribute('aria-busy', 'true');
+      await loadArtwork();
+    }
+    const loaded = viewer.dataset.loaded === 'true';
+    if (toFlat && loaded) {
+      savedOrbit = viewer.getCameraOrbit().toString();
+      savedFieldOfView = viewer.getFieldOfView() + 'deg';
+    }
+    const assets = loaded && desktopPointer.matches && !reducedMotion.matches ? await loadFoldAssets() : null;
+    if (assets) {
+      const [{createFold}, config] = assets;
+      const renderFold = createFold(stage, config, artwork.src);
+      viewer.removeAttribute('camera-controls');
+      viewer.cameraOrbit = initialOrbit();
+      viewer.fieldOfView = '30deg';
+      if (toFlat) await animate(260, () => {});
+      viewer.jumpCameraToGoal();
+      const closed = closedFrame();
+      stage.style.perspective = closed.perspective + 'px';
+      flat.hidden = false;
+      const open = {width: artwork.offsetWidth, zoom, panX, panY};
+      flat.hidden = true;
+      renderFold(toFlat ? 0 : 1, closed, open);
+      stage.hidden = false;
+      document.body.dataset.view = 'folding';
+      await animate(1050, progress => renderFold(toFlat ? progress : 1 - progress, closed, open));
+    }
+    view = next;
+    status.hidden = true;
+  } catch (error) {
+    view = previous;
+    status.textContent = '展示切换失败，请重试。';
+    status.hidden = false;
+    console.warn(error);
+  } finally {
     stage.hidden = true;
+    stage.replaceChildren();
+    document.body.dataset.view = view;
+    flat.hidden = view !== 'flat';
+    viewer.tabIndex = view === 'flat' ? -1 : 0;
+    flatButton.setAttribute('aria-pressed', String(view === 'flat'));
+    modelButton.setAttribute('aria-pressed', String(view === 'model'));
+    if (viewer.dataset.loaded === 'true') {
+      viewer.setAttribute('camera-controls', '');
+      if (savedOrbit) viewer.cameraOrbit = savedOrbit;
+      if (savedFieldOfView) viewer.fieldOfView = savedFieldOfView;
+      if (reducedMotion.matches) viewer.jumpCameraToGoal();
+      modelButton.disabled = false;
+    }
+    modelButton.disabled = view === 'model' && viewer.dataset.loaded !== 'true';
+    flatButton.removeAttribute('aria-busy');
+    switching = false;
   }
-
-  view = next;
-  document.body.dataset.view = view;
-  flat.hidden = !toFlat;
-  viewer.tabIndex = toFlat ? -1 : 0;
-  flatButton.setAttribute('aria-pressed', String(toFlat));
-  modelButton.setAttribute('aria-pressed', String(!toFlat));
-  if (!toFlat && viewer.dataset.loaded === 'true') {
-    viewer.setAttribute('camera-controls', '');
-    if (savedOrbit) viewer.cameraOrbit = savedOrbit;
-    if (savedFieldOfView) viewer.fieldOfView = savedFieldOfView;
-    if (reducedMotion.matches) viewer.jumpCameraToGoal();
-  }
-  switching = false;
 }
 
 flatButton.addEventListener('click', () => void switchView('flat'));

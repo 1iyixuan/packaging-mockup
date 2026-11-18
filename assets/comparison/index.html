@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <link rel="icon" href="./vendor/box.svg" type="image/svg+xml">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob:; worker-src 'self' blob:">
+  <meta name="description" content="$page_title">
+  <title>$page_title</title>
+  <link rel="stylesheet" href="./viewer.css?v=$revision">
+  <script type="module" src="./viewer.js?v=$revision"></script>
+</head>
+<body data-view="model" data-revision="$revision" data-comparison="$comparison" style="--scheme-count: $scheme_count">
+  <header>
+    $heading
+    <button type="button" id="back-to-compare" hidden>← 返回</button>
+  </header>
+  <main aria-label="包装展示">
+    <div id="model-stage" aria-label="包装方案 3D 对比" aria-describedby="orbit-help" tabindex="0">
+      <model-viewer id="shared-viewer" aria-hidden="true"
+        interaction-prompt="none" loading="eager" reveal="auto"
+        camera-target="0m 0m 0m" camera-orbit="0deg 90deg 1m"
+        field-of-view="12deg" min-field-of-view="12deg" max-field-of-view="12deg"
+        min-camera-orbit="auto auto 0.01m" max-camera-orbit="auto auto 10m"
+        environment-image="neutral" tone-mapping="neutral" exposure="1" shadow-intensity="0">
+$extra_models
+      </model-viewer>
+      <div class="scheme-shortcuts">$scheme_buttons</div>
+      <div class="model-pair pair" hidden>$detail_models</div>
+    </div>
+    <div id="flat-view" tabindex="0" aria-label="各方案的彩色刀版。拖动平移，滚轮或双指缩放，Home 复位。" hidden>
+      <div class="artwork-pair pair">$artwork_images</div>
+    </div>
+    <div id="fold-stage" aria-hidden="true" hidden>$fold_surfaces</div>
+  </main>
+  <div class="mode-switch" role="group" aria-label="展示模式" >
+    <button type="button" id="show-flat" aria-pressed="false">
+      <span><img src="./vendor/square.svg" alt="">平面展示</span>
+    </button>
+    <button type="button" id="show-model" aria-pressed="true" disabled>
+      <span><img src="./vendor/box.svg" alt="">3D展示</span>
+    </button>
+  </div>
+  <button class="fullscreen" type="button" aria-label="全屏展示" aria-pressed="false" title="全屏展示">
+    <img class="expand-icon" src="./vendor/expand.svg" alt="">
+    <img class="shrink-icon" src="./vendor/shrink.svg" alt="">
+  </button>
+  <p id="orbit-help">点击盒子单独查看，拖动旋转，拖空白处一起转</p>
+  <p id="load-status" role="status" aria-live="polite">正在加载包装模型…</p>
+  <noscript><p class="no-script">请启用 JavaScript 查看可旋转的包装模型。</p></noscript>
+</body>
+</html>

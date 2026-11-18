@@ -170,14 +170,14 @@ def build(model, title, out, subtitle="", poster=None, orbit=DEFAULT_ORBIT,
         page_title=html.escape(combined), description=html.escape(combined), heading=heading,
         revision=version, orbit=orbit, mobile_orbit=mobile_orbit,
         poster_attr=f'poster="{images["poster"]}"' if poster else "",
-        dieline_src=f'src="{images["dieline"]}"' if dieline else "",
+        dieline_src=f'data-src="{images["dieline"]}"' if dieline else "",
         mode_attr="" if dieline else "hidden",
         fold_attr=f'data-fold-config="./fold.json?v={version}"' if fold else "",
     )
     (out / "index.html").write_text(page, encoding="utf-8")
     manifest = {"title": title, "subtitle": subtitle, "model": metadata, "initialOrbit": orbit,
                 "mobileOrbit": mobile_orbit, "flatView": bool(dieline), "foldAnimation": bool(fold),
-                "revision": version}
+                "revision": version, "mobileFoldAnimation": False}
     (out / "asset-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     with zipfile.ZipFile(archive, "x", compression=zipfile.ZIP_DEFLATED) as bundle:
         for file in sorted(out.rglob("*")):
